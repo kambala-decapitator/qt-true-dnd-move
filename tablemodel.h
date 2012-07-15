@@ -38,8 +38,8 @@ public:
     bool canStoreImageWithMimeDataAtIndex(const QMimeData *mimeData, const QModelIndex &modelIndex) const;
     TableKey coordinatesFromMimeData(const QMimeData *mimeData) const;
 
-    void    addItem(int row, int column, const ImageInfo &imageInfo) { addItem(qMakePair(row, column), imageInfo); }
-    void    addItem(const TableKey &key, const ImageInfo &imageInfo) { _imageNamesHash[key] = imageInfo; }
+    void addItem(int row, int column, const ImageInfo &imageInfo) { addItem(qMakePair(row, column), imageInfo); }
+    void addItem(const TableKey &key, const ImageInfo &imageInfo) { _imageNamesHash[key] = imageInfo; }
 
     const QModelIndex &dragOriginIndex() const { return _dragOriginIndex; }
     void setDragOriginIndex(const QModelIndex &index) { _dragOriginIndex = index; }

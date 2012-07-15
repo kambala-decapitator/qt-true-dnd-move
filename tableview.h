@@ -22,6 +22,9 @@ public:
 
     void setCellSpanForImageInfoAtIndex(const QModelIndex &index);
 
+public slots:
+    void setCustomDnD(bool b) { _isCustomDnD = b; }
+
 protected:
     virtual void dragEnterEvent(QDragEnterEvent *event);
     virtual void dragMoveEvent(QDragMoveEvent *event);
@@ -34,6 +37,7 @@ private slots:
 
 private:
     QTimer *_dragLeaveTimer;
+    bool _isCustomDnD;
 
     QModelIndex actualIndexAt(const QPoint &p);
     QModelIndex indexForDragDropEvent(QDropEvent *event);

@@ -35,12 +35,13 @@ TableView::TableView(QWidget *parent) : QTableView(parent), _dragLeaveTimer(new 
     setModel(model_);
     connect(model_, SIGNAL(itemMoved(const QModelIndex &, const QModelIndex &)), SLOT(updateSpansForIndexes(const QModelIndex &, const QModelIndex &)));
 
-    for (int i = 0; i < model_->rowCount(); ++i)
+    int rows = model_->rowCount(), cols = model_->columnCount();
+    for (int i = 0; i < rows; ++i)
         setRowHeight(i, kCellSize);
-    for (int i = 0; i < model_->columnCount(); ++i)
+    for (int i = 0; i < cols; ++i)
         setColumnWidth(i, kCellSize);
-    for (int i = 0; i < model_->rowCount(); ++i)
-        for (int j = 0; j < model_->columnCount(); ++j)
+    for (int i = 0; i < rows; ++i)
+        for (int j = 0; j < cols; ++j)
             setCellSpanForImageInfoAtIndex(model_->index(i, j));
 
     _dragLeaveTimer->setInterval(100);
@@ -61,23 +62,27 @@ void TableView::setCellSpanForImageInfoAtIndex(const QModelIndex &index)
 
 void TableView::dragEnterEvent(QDragEnterEvent *event)
 {
-    _dragLeaveTimer->stop();
-
-    TableModel *model_ = model();
-    if (!model_->dragOriginIndex().isValid())
+    if (_isCustomDnD)
     {
-        QModelIndex index = indexAt(event->pos());
-        model_->setDragOriginIndex(index);
-        setSpan(index.row(), index.column(), 1, 1);
+        _dragLeaveTimer->stop();
+
+        TableModel *model_ = model();
+        if (!model_->dragOriginIndex().isValid())
+        {
+            QModelIndex index = indexAt(event->pos());
+            model_->setDragOriginIndex(index);
+            setSpan(index.row(), index.column(), 1, 1);
+        }
+        selectionModel()->clearSelection();
     }
-    selectionModel()->clearSelection();
 
     QTableView::dragEnterEvent(event);
 }
 
 void TableView::dragMoveEvent(QDragMoveEvent *event)
 {
-    if (model()->canStoreImageWithMimeDataAtIndex(event->mimeData(), indexForDragDropEvent(event)))
+    QModelIndex index = indexForDragDropEvent(event);
+    if (index.isValid() && model()->canStoreImageWithMimeDataAtIndex(event->mimeData(), index))
         event->acceptProposedAction();
     else
         event->ignore();
@@ -87,8 +92,11 @@ void TableView::dragLeaveEvent(QDragLeaveEvent *event)
 {
     QTableView::dragLeaveEvent(event);
 
-    _dragLeaveTimer->setSingleShot(true);
-    _dragLeaveTimer->start();
+    if (_isCustomDnD)
+    {
+        _dragLeaveTimer->setSingleShot(true);
+        _dragLeaveTimer->start();
+    }
 }
 
 void TableView::dropEvent(QDropEvent *event)

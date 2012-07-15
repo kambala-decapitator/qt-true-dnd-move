@@ -64,9 +64,6 @@ bool TableModel::canStoreImageWithMimeDataAtIndex(const QMimeData *mimeData, con
     for (QHash<TableKey, ImageInfo>::const_iterator iter = hashCopy.constBegin(); iter != hashCopy.constEnd(); ++iter)
     {
         const ImageInfo &imageInfo = iter.value();
-//        if (imageInfo.name == storeImageInfo.name) // very simplified condition, allows to overlap with previous image rect
-//            return true;
-
         const TableKey &coordinates = iter.key();
         if (storeImageRect.intersects(QRect(coordinates.second, coordinates.first, imageInfo.w, imageInfo.h)))
         {

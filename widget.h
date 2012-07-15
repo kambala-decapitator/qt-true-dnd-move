@@ -7,7 +7,7 @@
 class TableView;
 
 class QLabel;
-//class QCheckBox;
+class QCheckBox;
 
 class Widget : public QWidget
 {
@@ -20,7 +20,7 @@ public:
 private:
     TableView *_tableView;
     QLabel *_label;
-//    QCheckBox *_checkBox;
+    QCheckBox *_checkBox;
 };
 
 #endif // WIDGET_H
