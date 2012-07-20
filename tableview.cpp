@@ -105,6 +105,8 @@ void TableView::dragLeaveEvent(QDragLeaveEvent *event)
         _dragLeaveTimer->setSingleShot(true);
         _dragLeaveTimer->start();
     }
+    else
+        _draggedImage = ImageInfo();
 }
 
 void TableView::dropEvent(QDropEvent *event)

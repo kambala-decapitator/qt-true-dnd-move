@@ -87,12 +87,12 @@ bool TableModel::canStoreImageWithCoordinatesAtIndex(const ImageInfo &storeImage
         return false;
 
     bool ok = true;
-    const TableKey &storeImageCoordinates = _imageNamesHash.key(storeImageInfo);
+    TableKey draggedItemCoordinates = qMakePair(_dragOriginIndex.row(), _dragOriginIndex.column());
     for (QHash<TableKey, ImageInfo>::const_iterator iter = _imageNamesHash.constBegin(); iter != _imageNamesHash.constEnd(); ++iter)
     {
         const ImageInfo &imageInfo = iter.value();
         const TableKey &coordinates = iter.key();
-        if (coordinates != storeImageCoordinates && storeImageRect.intersects(QRect(coordinates.second, coordinates.first, imageInfo.w, imageInfo.h)))
+        if (coordinates != draggedItemCoordinates && storeImageRect.intersects(QRect(coordinates.second, coordinates.first, imageInfo.w, imageInfo.h)))
         {
             ok = false;
             break;
