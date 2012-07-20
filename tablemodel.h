@@ -34,8 +34,11 @@ public:
     virtual Qt::ItemFlags flags(const QModelIndex &index) const;
     virtual bool dropMimeData(const QMimeData *data, Qt::DropAction action, int row, int column, const QModelIndex &parent);
 
-    ImageInfo imageInfoAtIndex(const QModelIndex &index) const { return _imageNamesHash[qMakePair(index.row(), index.column())]; }
+    ImageInfo imageInfoAtIndex(const QModelIndex &index)     const { return _imageNamesHash[qMakePair(index.row(), index.column())]; }
+    ImageInfo imageInfoAtCoordinates(const TableKey &coords) const { return _imageNamesHash[coords]; }
+
     bool canStoreImageWithMimeDataAtIndex(const QMimeData *mimeData, const QModelIndex &modelIndex) const;
+    bool canStoreImageWithCoordinatesAtIndex(const ImageInfo &storeImageInfo, const QModelIndex &modelIndex) const;
     TableKey coordinatesFromMimeData(const QMimeData *mimeData) const;
 
     void addItem(int row, int column, const ImageInfo &imageInfo) { addItem(qMakePair(row, column), imageInfo); }
@@ -44,7 +47,7 @@ public:
     const QModelIndex &dragOriginIndex() const { return _dragOriginIndex; }
     void setDragOriginIndex(const QModelIndex &index) { _dragOriginIndex = index; }
 
-public slots:
+    void setHighlightIndexes(const QModelIndexList &indexes) { _highlightIndexes = indexes; }
 
 signals:
     void itemMoved(const QModelIndex &newIndex, const QModelIndex &oldIndex);
@@ -52,6 +55,7 @@ signals:
 private:
     QHash<TableKey, ImageInfo> _imageNamesHash;
     QModelIndex _dragOriginIndex;
+    QModelIndexList _highlightIndexes;
 };
 
 #endif // TABLEMODEL_H

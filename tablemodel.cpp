@@ -5,6 +5,12 @@
 #include <QFile>
 
 
+bool operator ==(const ImageInfo &a, const ImageInfo &b)
+{
+    return a.w == b.w && a.h == b.h && a.name == b.name;
+}
+
+
 const int TableModel::kSize = 10;
 
 TableModel::TableModel(QObject *parent) : QAbstractTableModel(parent)
@@ -20,8 +26,27 @@ QVariant TableModel::data(const QModelIndex &index, int role) const
     if (role == Qt::BackgroundRole)
         return Qt::black;
 
-    ImageInfo imageInfo = imageInfoAtIndex(index);
-    if (_dragOriginIndex != index && !imageInfo.name.isEmpty() && role == Qt::DecorationRole)
+    if (role == Qt::DecorationRole && _highlightIndexes.contains(index))
+    {
+        bool isGreen = true;
+        foreach (const QModelIndex &anIndex, _highlightIndexes)
+        {
+            if (anIndex.isValid() && !canStoreImageWithCoordinatesAtIndex(ImageInfo(QString(), 1, 1), anIndex))
+            {
+                isGreen = false;
+                break;
+            }
+        }
+
+        QColor color(isGreen ? Qt::green : Qt::red);
+        color.setAlpha(64);
+        QPixmap pixmap(32, 32);
+        pixmap.fill(color);
+        return pixmap;
+    }
+
+    const ImageInfo &imageInfo = imageInfoAtIndex(index);
+    if (role == Qt::DecorationRole && _dragOriginIndex != index && !imageInfo.name.isEmpty())
         return QPixmap(":/images/" + imageInfo.name);
 
     return QVariant();
@@ -52,20 +77,22 @@ bool TableModel::dropMimeData(const QMimeData *mimeData, Qt::DropAction action, 
 
 bool TableModel::canStoreImageWithMimeDataAtIndex(const QMimeData *mimeData, const QModelIndex &modelIndex) const
 {
-    TableKey storeImageCoordinates = coordinatesFromMimeData(mimeData);
-    const ImageInfo &storeImageInfo = _imageNamesHash[storeImageCoordinates];
+    return canStoreImageWithCoordinatesAtIndex(_imageNamesHash[coordinatesFromMimeData(mimeData)], modelIndex);
+}
+
+bool TableModel::canStoreImageWithCoordinatesAtIndex(const ImageInfo &storeImageInfo, const QModelIndex &modelIndex) const
+{
     QRect storeImageRect(modelIndex.column(), modelIndex.row(), storeImageInfo.w, storeImageInfo.h);
     if (storeImageRect.right() >= columnCount() || storeImageRect.bottom() >= rowCount()) // beyond grid
         return false;
 
     bool ok = true;
-    QHash<TableKey, ImageInfo> hashCopy = _imageNamesHash;
-    hashCopy.remove(storeImageCoordinates);
-    for (QHash<TableKey, ImageInfo>::const_iterator iter = hashCopy.constBegin(); iter != hashCopy.constEnd(); ++iter)
+    const TableKey &storeImageCoordinates = _imageNamesHash.key(storeImageInfo);
+    for (QHash<TableKey, ImageInfo>::const_iterator iter = _imageNamesHash.constBegin(); iter != _imageNamesHash.constEnd(); ++iter)
     {
         const ImageInfo &imageInfo = iter.value();
         const TableKey &coordinates = iter.key();
-        if (storeImageRect.intersects(QRect(coordinates.second, coordinates.first, imageInfo.w, imageInfo.h)))
+        if (coordinates != storeImageCoordinates && storeImageRect.intersects(QRect(coordinates.second, coordinates.first, imageInfo.w, imageInfo.h)))
         {
             ok = false;
             break;

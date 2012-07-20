@@ -1,5 +1,4 @@
 #include "tableview.h"
-#include "tablemodel.h"
 
 #include <QHeaderView>
 #include <QDropEvent>
@@ -62,19 +61,23 @@ void TableView::setCellSpanForImageInfoAtIndex(const QModelIndex &index)
 
 void TableView::dragEnterEvent(QDragEnterEvent *event)
 {
+    TableModel *model_ = model();
+    QModelIndex index = indexAt(event->pos());
     if (_isCustomDnD)
     {
         _dragLeaveTimer->stop();
 
-        TableModel *model_ = model();
         if (!model_->dragOriginIndex().isValid())
         {
-            QModelIndex index = indexAt(event->pos());
             model_->setDragOriginIndex(index);
             setSpan(index.row(), index.column(), 1, 1);
         }
         selectionModel()->clearSelection();
     }
+
+    if (!_draggedImage.w)
+        _draggedImage = model_->imageInfoAtCoordinates(model_->coordinatesFromMimeData(event->mimeData()));
+    updateHighlightIndexesForOriginIndex(index);
 
     QTableView::dragEnterEvent(event);
 }
@@ -82,6 +85,9 @@ void TableView::dragEnterEvent(QDragEnterEvent *event)
 void TableView::dragMoveEvent(QDragMoveEvent *event)
 {
     QModelIndex index = indexForDragDropEvent(event);
+    updateHighlightIndexesForOriginIndex(index);
+    viewport()->update();
+
     if (index.isValid() && model()->canStoreImageWithMimeDataAtIndex(event->mimeData(), index))
         event->acceptProposedAction();
     else
@@ -91,6 +97,8 @@ void TableView::dragMoveEvent(QDragMoveEvent *event)
 void TableView::dragLeaveEvent(QDragLeaveEvent *event)
 {
     QTableView::dragLeaveEvent(event);
+
+    model()->setHighlightIndexes(QModelIndexList());
 
     if (_isCustomDnD)
     {
@@ -102,6 +110,7 @@ void TableView::dragLeaveEvent(QDragLeaveEvent *event)
 void TableView::dropEvent(QDropEvent *event)
 {
     dragStopped();
+    model()->setHighlightIndexes(QModelIndexList());
 
     QModelIndex index = indexForDragDropEvent(event);
     if (index.isValid() && model()->dropMimeData(event->mimeData(), event->dropAction(), index.row(), index.column(), index.parent()))
@@ -146,7 +155,28 @@ QModelIndex TableView::indexForDragDropEvent(QDropEvent *event)
     return actualIndexAt(event->pos() - findChild<QDrag *>()->hotSpot() + QPoint(rowHeight(0), columnWidth(0)) / 3);
 }
 
+void TableView::updateHighlightIndexesForOriginIndex(const QModelIndex &originIndex) const
+{
+    TableModel *model_ = model();
+    QModelIndexList highlightIndexes;
+    if (originIndex.isValid())
+    {
+        highlightIndexes += originIndex;
+        for (int i = 0; i < _draggedImage.w; ++i)
+            for (int j = 0; j < _draggedImage.h; ++j)
+                if (i || j) // first index is already in the list
+                {
+                    QModelIndex anIndex = model_->index(originIndex.row() + j, originIndex.column() + i);
+                    if (anIndex.isValid())
+                        highlightIndexes += anIndex;
+                }
+    }
+
+    model_->setHighlightIndexes(highlightIndexes);
+}
+
 void TableView::dragStopped()
 {
+    _draggedImage = ImageInfo();
     model()->setDragOriginIndex(QModelIndex());
 }

@@ -3,10 +3,11 @@
 
 #include <QTableView>
 
+#include "tablemodel.h"
+
 
 class QTimer;
 class TableModel;
-struct ImageInfo;
 
 class TableView : public QTableView
 {
@@ -38,9 +39,11 @@ private slots:
 private:
     QTimer *_dragLeaveTimer;
     bool _isCustomDnD;
+    ImageInfo _draggedImage;
 
     QModelIndex actualIndexAt(const QPoint &p);
     QModelIndex indexForDragDropEvent(QDropEvent *event);
+    void updateHighlightIndexesForOriginIndex(const QModelIndex &originIndex) const;
     void dragStopped();
 };
 
