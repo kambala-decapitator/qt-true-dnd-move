@@ -13,6 +13,6 @@ Widget::Widget(QWidget *parent) : QWidget(parent), _tableView(new TableView(this
     grid->addWidget(_label, 0, 1);
     grid->addWidget(_checkBox, 1, 0);
 
-    connect(_checkBox, SIGNAL(toggled(bool)), _tableView, SLOT(setCustomDnD(bool)));
+    connect(_checkBox, SIGNAL(toggled(bool)), _tableView->model(), SLOT(setCustomDragAndDrop(bool)));
     _checkBox->setChecked(true);
 }

@@ -6,8 +6,6 @@
 #include <QTimer>
 
 
-const int TableView::kCellSize = 32;
-
 TableView::TableView(QWidget *parent) : QTableView(parent), _dragLeaveTimer(new QTimer(this))
 {
     setEditTriggers(QAbstractItemView::NoEditTriggers);
@@ -18,8 +16,7 @@ TableView::TableView(QWidget *parent) : QTableView(parent), _dragLeaveTimer(new 
 
     setGridStyle(Qt::SolidLine);
     setStyleSheet("QTableView { background-color: black; gridline-color: #808080; }"
-                  "QTableView::item:selected { background-color: black; border: 1px solid #d9d9d9; }"
-                  "QTableView::icon:selected { right: 1px; }"
+                  "QTableView::item { background-color: transparent; }"
                  );
 
     setDragDropMode(QAbstractItemView::DragDrop);
@@ -36,9 +33,9 @@ TableView::TableView(QWidget *parent) : QTableView(parent), _dragLeaveTimer(new 
 
     int rows = model_->rowCount(), cols = model_->columnCount();
     for (int i = 0; i < rows; ++i)
-        setRowHeight(i, kCellSize);
+        setRowHeight(i, TableModel::kCellSize);
     for (int i = 0; i < cols; ++i)
-        setColumnWidth(i, kCellSize);
+        setColumnWidth(i, TableModel::kCellSize);
     for (int i = 0; i < rows; ++i)
         for (int j = 0; j < cols; ++j)
             setCellSpanForImageInfoAtIndex(model_->index(i, j));
@@ -47,37 +44,27 @@ TableView::TableView(QWidget *parent) : QTableView(parent), _dragLeaveTimer(new 
     connect(_dragLeaveTimer, SIGNAL(timeout()), SLOT(checkIfStillDragging()));
 }
 
-TableModel *TableView::model() const
-{
-    return static_cast<TableModel *>(QTableView::model());
-}
-
-void TableView::setCellSpanForImageInfoAtIndex(const QModelIndex &index)
-{
-    const ImageInfo &imageInfo = model()->imageInfoAtIndex(index);
-    if (imageInfo.h && imageInfo.w)
-        setSpan(index.row(), index.column(), imageInfo.h, imageInfo.w);
-}
-
 void TableView::dragEnterEvent(QDragEnterEvent *event)
 {
     TableModel *model_ = model();
     QModelIndex index = indexAt(event->pos());
-    if (_isCustomDnD)
-    {
-        _dragLeaveTimer->stop();
 
-        if (!model_->dragOriginIndex().isValid())
-        {
-            model_->setDragOriginIndex(index);
-            setSpan(index.row(), index.column(), 1, 1);
-        }
-        selectionModel()->clearSelection();
-    }
-
-    if (!_draggedImage.w)
+    if (!_draggedImage.width)
         _draggedImage = model_->imageInfoAtCoordinates(model_->coordinatesFromMimeData(event->mimeData()));
     updateHighlightIndexesForOriginIndex(index);
+
+    if (!model_->dragOriginIndex().isValid())
+    {
+        _dragLeaveTimer->stop();
+        model_->setDragOriginIndex(index);
+
+        if (model_->isCustomDragAndDrop())
+        {
+            if (_draggedImage.width > 1 || _draggedImage.height > 1)
+                setSpan(index.row(), index.column(), 1, 1);
+            selectionModel()->clearSelection();
+        }
+    }
 
     QTableView::dragEnterEvent(event);
 }
@@ -100,13 +87,8 @@ void TableView::dragLeaveEvent(QDragLeaveEvent *event)
 
     model()->setHighlightIndexes(QModelIndexList());
 
-    if (_isCustomDnD)
-    {
-        _dragLeaveTimer->setSingleShot(true);
-        _dragLeaveTimer->start();
-    }
-    else
-        _draggedImage = ImageInfo();
+    _dragLeaveTimer->setSingleShot(true);
+    _dragLeaveTimer->start();
 }
 
 void TableView::dropEvent(QDropEvent *event)
@@ -142,9 +124,18 @@ void TableView::checkIfStillDragging()
 
 void TableView::updateSpansForIndexes(const QModelIndex &newIndex, const QModelIndex &oldIndex)
 {
-    setSpan(oldIndex.row(), oldIndex.column(), 1, 1);
+    int row = oldIndex.row(), col = oldIndex.column();
+    if (rowSpan(row, col) > 1 || columnSpan(row, col) > 1)
+        setSpan(row, col, 1, 1);
     setCellSpanForImageInfoAtIndex(newIndex);
     setCurrentIndex(newIndex);
+}
+
+void TableView::setCellSpanForImageInfoAtIndex(const QModelIndex &index)
+{
+    const ImageInfo &imageInfo = model()->imageInfoAtIndex(index);
+    if (imageInfo.height > 1 || imageInfo.width > 1)
+        setSpan(index.row(), index.column(), imageInfo.height, imageInfo.width);
 }
 
 QModelIndex TableView::actualIndexAt(const QPoint &p)
@@ -164,8 +155,8 @@ void TableView::updateHighlightIndexesForOriginIndex(const QModelIndex &originIn
     if (originIndex.isValid())
     {
         highlightIndexes += originIndex;
-        for (int i = 0; i < _draggedImage.w; ++i)
-            for (int j = 0; j < _draggedImage.h; ++j)
+        for (int i = 0; i < _draggedImage.width; ++i)
+            for (int j = 0; j < _draggedImage.height; ++j)
                 if (i || j) // first index is already in the list
                 {
                     QModelIndex anIndex = model_->index(originIndex.row() + j, originIndex.column() + i);

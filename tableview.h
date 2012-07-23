@@ -7,24 +7,16 @@
 
 
 class QTimer;
-class TableModel;
 
 class TableView : public QTableView
 {
     Q_OBJECT
 
 public:
-    static const int kCellSize;
-
     explicit TableView(QWidget *parent = 0);
     virtual ~TableView() {}
 
-    TableModel *model() const;
-
-    void setCellSpanForImageInfoAtIndex(const QModelIndex &index);
-
-public slots:
-    void setCustomDnD(bool b) { _isCustomDnD = b; }
+    TableModel *model() const { return static_cast<TableModel *>(QTableView::model()); }
 
 protected:
     virtual void dragEnterEvent(QDragEnterEvent *event);
@@ -38,8 +30,9 @@ private slots:
 
 private:
     QTimer *_dragLeaveTimer;
-    bool _isCustomDnD;
     ImageInfo _draggedImage;
+
+    void setCellSpanForImageInfoAtIndex(const QModelIndex &index);
 
     QModelIndex actualIndexAt(const QPoint &p);
     QModelIndex indexForDragDropEvent(QDropEvent *event);

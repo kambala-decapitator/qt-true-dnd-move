@@ -7,10 +7,10 @@
 struct ImageInfo
 {
     QString name;
-    int w, h;
+    int width, height;
 
-    ImageInfo() : w(0), h(0) {}
-    ImageInfo(const QString &name_, int w_, int h_) : name(name_), w(w_), h(h_) {}
+    ImageInfo() : width(0), height(0) {}
+    ImageInfo(const QString &name_, int width_, int height_) : name(name_), width(width_), height(height_) {}
 };
 
 
@@ -22,6 +22,7 @@ class TableModel : public QAbstractTableModel
 
 public:
     static const int kSize;
+    static const int kCellSize;
 
     explicit TableModel(QObject *parent = 0);
     virtual ~TableModel() {}
@@ -44,16 +45,22 @@ public:
     void addItem(int row, int column, const ImageInfo &imageInfo) { addItem(qMakePair(row, column), imageInfo); }
     void addItem(const TableKey &key, const ImageInfo &imageInfo) { _imageNamesHash[key] = imageInfo; }
 
+    bool isCustomDragAndDrop() const { return _isCustomDragAndDrop; }
+
     const QModelIndex &dragOriginIndex() const { return _dragOriginIndex; }
     void setDragOriginIndex(const QModelIndex &index) { _dragOriginIndex = index; }
 
     void setHighlightIndexes(const QModelIndexList &indexes) { _highlightIndexes = indexes; }
+
+public slots:
+    void setCustomDragAndDrop(bool b) { _isCustomDragAndDrop = b; }
 
 signals:
     void itemMoved(const QModelIndex &newIndex, const QModelIndex &oldIndex);
     
 private:
     QHash<TableKey, ImageInfo> _imageNamesHash;
+    bool _isCustomDragAndDrop;
     QModelIndex _dragOriginIndex;
     QModelIndexList _highlightIndexes;
 };

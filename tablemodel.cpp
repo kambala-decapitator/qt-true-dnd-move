@@ -1,17 +1,19 @@
 #include "tablemodel.h"
 
 #include <QPixmap>
+
 #include <QMimeData>
 #include <QFile>
 
 
 bool operator ==(const ImageInfo &a, const ImageInfo &b)
 {
-    return a.w == b.w && a.h == b.h && a.name == b.name;
+    return a.width == b.width && a.height == b.height && a.name == b.name;
 }
 
 
 const int TableModel::kSize = 10;
+const int TableModel::kCellSize = 32;
 
 TableModel::TableModel(QObject *parent) : QAbstractTableModel(parent)
 {
@@ -26,27 +28,31 @@ QVariant TableModel::data(const QModelIndex &index, int role) const
     if (role == Qt::BackgroundRole)
         return Qt::black;
 
-    if (role == Qt::DecorationRole && _highlightIndexes.contains(index))
+    if (role == Qt::DecorationRole && _highlightIndexes.contains(index) && !_imageNamesHash.contains(qMakePair(index.row(), index.column())))
     {
-        bool isGreen = true;
-        foreach (const QModelIndex &anIndex, _highlightIndexes)
+        const ImageInfo &draggedImageInfo = imageInfoAtIndex(_dragOriginIndex);
+        bool isGreen = _highlightIndexes.size() == draggedImageInfo.width * draggedImageInfo.height;
+        if (isGreen) // false means that some part of image is beyond the grid
         {
-            if (anIndex.isValid() && !canStoreImageWithCoordinatesAtIndex(ImageInfo(QString(), 1, 1), anIndex))
+            foreach (const QModelIndex &anIndex, _highlightIndexes)
             {
-                isGreen = false;
-                break;
+                if (anIndex.isValid() && !canStoreImageWithCoordinatesAtIndex(ImageInfo(QString(), 1, 1), anIndex))
+                {
+                    isGreen = false;
+                    break;
+                }
             }
         }
 
         QColor color(isGreen ? Qt::green : Qt::red);
         color.setAlpha(64);
-        QPixmap pixmap(32, 32);
+        QPixmap pixmap(kCellSize, kCellSize);
         pixmap.fill(color);
         return pixmap;
     }
 
     const ImageInfo &imageInfo = imageInfoAtIndex(index);
-    if (role == Qt::DecorationRole && _dragOriginIndex != index && !imageInfo.name.isEmpty())
+    if (role == Qt::DecorationRole && (!_isCustomDragAndDrop || _dragOriginIndex != index) && !imageInfo.name.isEmpty())
         return QPixmap(":/images/" + imageInfo.name);
 
     return QVariant();
@@ -82,7 +88,7 @@ bool TableModel::canStoreImageWithMimeDataAtIndex(const QMimeData *mimeData, con
 
 bool TableModel::canStoreImageWithCoordinatesAtIndex(const ImageInfo &storeImageInfo, const QModelIndex &modelIndex) const
 {
-    QRect storeImageRect(modelIndex.column(), modelIndex.row(), storeImageInfo.w, storeImageInfo.h);
+    QRect storeImageRect(modelIndex.column(), modelIndex.row(), storeImageInfo.width, storeImageInfo.height);
     if (storeImageRect.right() >= columnCount() || storeImageRect.bottom() >= rowCount()) // beyond grid
         return false;
 
@@ -92,7 +98,7 @@ bool TableModel::canStoreImageWithCoordinatesAtIndex(const ImageInfo &storeImage
     {
         const ImageInfo &imageInfo = iter.value();
         const TableKey &coordinates = iter.key();
-        if (coordinates != draggedItemCoordinates && storeImageRect.intersects(QRect(coordinates.second, coordinates.first, imageInfo.w, imageInfo.h)))
+        if (coordinates != draggedItemCoordinates && storeImageRect.intersects(QRect(coordinates.second, coordinates.first, imageInfo.width, imageInfo.height)))
         {
             ok = false;
             break;
