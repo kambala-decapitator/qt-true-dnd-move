@@ -2,8 +2,10 @@
 
 #include <QHeaderView>
 #include <QDropEvent>
+#include <QDrag>
 
 #include <QTimer>
+#include <QDebug>
 
 
 TableView::TableView(QWidget *parent) : QTableView(parent), _dragLeaveTimer(new QTimer(this))
@@ -51,7 +53,7 @@ void TableView::dragEnterEvent(QDragEnterEvent *event)
 
     if (!_draggedImage.width)
         _draggedImage = model_->imageInfoAtCoordinates(model_->coordinatesFromMimeData(event->mimeData()));
-    updateHighlightIndexesForOriginIndex(index);
+    updateHighlightIndexesForOriginIndex(event);
 
     if (!model_->dragOriginIndex().isValid())
     {
@@ -72,7 +74,7 @@ void TableView::dragEnterEvent(QDragEnterEvent *event)
 void TableView::dragMoveEvent(QDragMoveEvent *event)
 {
     QModelIndex index = indexForDragDropEvent(event);
-    updateHighlightIndexesForOriginIndex(index);
+    updateHighlightIndexesForOriginIndex(event);
     viewport()->update();
 
     if (index.isValid() && model()->canStoreImageWithMimeDataAtIndex(event->mimeData(), index))
@@ -138,31 +140,40 @@ void TableView::setCellSpanForImageInfoAtIndex(const QModelIndex &index)
         setSpan(index.row(), index.column(), imageInfo.height, imageInfo.width);
 }
 
-QModelIndex TableView::actualIndexAt(const QPoint &p)
+QModelIndex TableView::actualIndexAt(const QPoint &p) const
 {
     return model()->index(rowAt(p.y()), columnAt(p.x()));
 }
 
-QModelIndex TableView::indexForDragDropEvent(QDropEvent *event)
+QModelIndex TableView::indexForDragDropEvent(QDropEvent *event) const
 {
-    return actualIndexAt(event->pos() - findChild<QDrag *>()->hotSpot() + QPoint(rowHeight(0), columnWidth(0)) / 3);
+    return actualIndexAt(event->pos() - findChild<QDrag *>()->hotSpot() + QPoint(TableModel::kCellSize, TableModel::kCellSize) / 3);
 }
 
-void TableView::updateHighlightIndexesForOriginIndex(const QModelIndex &originIndex) const
+void TableView::updateHighlightIndexesForOriginIndex(QDropEvent *e) const
 {
     TableModel *model_ = model();
+    QModelIndex originIndex = indexForDragDropEvent(e);
     QModelIndexList highlightIndexes;
     if (originIndex.isValid())
     {
         highlightIndexes += originIndex;
         for (int i = 0; i < _draggedImage.width; ++i)
+        {
             for (int j = 0; j < _draggedImage.height; ++j)
+            {
                 if (i || j) // first index is already in the list
                 {
                     QModelIndex anIndex = model_->index(originIndex.row() + j, originIndex.column() + i);
                     if (anIndex.isValid())
                         highlightIndexes += anIndex;
                 }
+            }
+        }
+    }
+    else
+    {
+        // TODO: find valid indexes
     }
 
     model_->setHighlightIndexes(highlightIndexes);

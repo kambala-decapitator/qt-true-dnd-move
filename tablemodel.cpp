@@ -26,7 +26,7 @@ TableModel::TableModel(QObject *parent) : QAbstractTableModel(parent)
 QVariant TableModel::data(const QModelIndex &index, int role) const
 {
     if (role == Qt::BackgroundRole)
-        return Qt::black;
+        return QColor(Qt::black);
 
     if (role == Qt::DecorationRole && _highlightIndexes.contains(index) && !_imageNamesHash.contains(qMakePair(index.row(), index.column())))
     {
@@ -70,12 +70,11 @@ bool TableModel::dropMimeData(const QMimeData *mimeData, Qt::DropAction action, 
     Q_UNUSED(action); Q_UNUSED(parent);
 
     TableKey droppedImageCoordinates = coordinatesFromMimeData(mimeData);
-    ImageInfo droppedImageInfo = _imageNamesHash[droppedImageCoordinates];
     QModelIndex newIndex = index(row, column), oldIndex = index(droppedImageCoordinates.first, droppedImageCoordinates.second);
     if (newIndex != oldIndex)
     {
         _imageNamesHash.remove(droppedImageCoordinates);
-        addItem(row, column, droppedImageInfo);
+        addItem(row, column, imageInfoAtCoordinates(droppedImageCoordinates));
     }
     emit itemMoved(newIndex, oldIndex);
     return true;
@@ -83,7 +82,7 @@ bool TableModel::dropMimeData(const QMimeData *mimeData, Qt::DropAction action, 
 
 bool TableModel::canStoreImageWithMimeDataAtIndex(const QMimeData *mimeData, const QModelIndex &modelIndex) const
 {
-    return canStoreImageWithCoordinatesAtIndex(_imageNamesHash[coordinatesFromMimeData(mimeData)], modelIndex);
+    return canStoreImageWithCoordinatesAtIndex(imageInfoAtCoordinates(coordinatesFromMimeData(mimeData)), modelIndex);
 }
 
 bool TableModel::canStoreImageWithCoordinatesAtIndex(const ImageInfo &storeImageInfo, const QModelIndex &modelIndex) const

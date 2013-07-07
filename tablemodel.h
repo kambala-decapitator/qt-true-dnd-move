@@ -35,8 +35,8 @@ public:
     virtual Qt::ItemFlags flags(const QModelIndex &index) const;
     virtual bool dropMimeData(const QMimeData *data, Qt::DropAction action, int row, int column, const QModelIndex &parent);
 
-    ImageInfo imageInfoAtIndex(const QModelIndex &index)     const { return _imageNamesHash[qMakePair(index.row(), index.column())]; }
-    ImageInfo imageInfoAtCoordinates(const TableKey &coords) const { return _imageNamesHash[coords]; }
+    ImageInfo imageInfoAtIndex(const QModelIndex &index)     const { return imageInfoAtCoordinates(qMakePair(index.row(), index.column())); }
+    ImageInfo imageInfoAtCoordinates(const TableKey &coords) const { return _imageNamesHash.value(coords); }
 
     bool canStoreImageWithMimeDataAtIndex(const QMimeData *mimeData, const QModelIndex &modelIndex) const;
     bool canStoreImageWithCoordinatesAtIndex(const ImageInfo &storeImageInfo, const QModelIndex &modelIndex) const;

@@ -34,9 +34,9 @@ private:
 
     void setCellSpanForImageInfoAtIndex(const QModelIndex &index);
 
-    QModelIndex actualIndexAt(const QPoint &p);
-    QModelIndex indexForDragDropEvent(QDropEvent *event);
-    void updateHighlightIndexesForOriginIndex(const QModelIndex &originIndex) const;
+    QModelIndex actualIndexAt(const QPoint &p) const;
+    QModelIndex indexForDragDropEvent(QDropEvent *event) const;
+    void updateHighlightIndexesForOriginIndex(QDropEvent *e) const;
     void dragStopped();
 };
 
